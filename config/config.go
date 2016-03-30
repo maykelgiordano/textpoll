@@ -11,6 +11,9 @@ import (
 func init() {
 	log.Println("Initializing configs")
 	env := os.Getenv("ENV")
+
+	fmt.Println("ENVIRONMENT ---> ", env)
+	
 	if env == "" {
 		env = "dev"
 	}
