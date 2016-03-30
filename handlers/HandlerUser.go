@@ -13,7 +13,6 @@ import (
 	"gopkg.in/mgo.v2"	
 	"gopkg.in/mgo.v2/bson"	
 	"github.com/dgrijalva/jwt-go"
-	"github.com/satori/go.uuid"
 )
 
 type UserHandler struct {
@@ -45,7 +44,7 @@ func (handler UserHandler) Index(c *gin.Context) {
 
 	fmt.Printf("offset ---> %d max ---> %d\n", start, max)
 	users := []m.User{}
-	collection := handler.sess.DB("npcrdb").C("users") 
+	collection := handler.sess.DB("textpolldb").C("users") 
 	collection.Find(nil).Select(bson.M{"password": 0}).All(&users)
 	c.JSON(http.StatusOK, users)
 }
@@ -54,13 +53,12 @@ func (handler UserHandler) Index(c *gin.Context) {
 func (handler UserHandler) Create(c *gin.Context) {
 	user := m.User{}
 	c.Bind(&user)
-	collection := handler.sess.DB("npcrdb").C("users") 
+	collection := handler.sess.DB("textpolldb").C("users") 
 	result := m.User{}
-	err := collection.Find(bson.M{"email": user.Email}).One(&result)
+	err := collection.Find(bson.M{"username": user.Username}).One(&result)
 	//check if email is not existing
 	if fmt.Sprintf("%s", err) == "not found" {
 		// generate hashed password
-		user.ID = fmt.Sprintf("%s", uuid.NewV4())
 		user.CreatedAt = time.Now().UTC()
 		user.UpdatedAt = time.Now().UTC()
 		user.Status = "active"
@@ -70,19 +68,17 @@ func (handler UserHandler) Create(c *gin.Context) {
 		collection.Insert(&user)
 	    // Create the token
 	    token := jwt.New(jwt.SigningMethodHS256)
-	    token.Claims["id"] = user.ID
+	    token.Claims["id"] = user.Username
 	    token.Claims["iat"] = time.Now().Unix()
 	    token.Claims["exp"] = time.Now().Add(time.Second * 3600 * 24).Unix()
 	    tokenString, err := token.SignedString([]byte("secret"))
 	    if err == nil {
 			respond(http.StatusCreated,tokenString,c,false)
     	} else {
-			fmt.Println("failed to create token --->",err)
 			respond(http.StatusBadRequest,"Failed to create account",c,true)
     	}
 	} else {
-		fmt.Println("email existing")
-		respond(http.StatusBadRequest,"Email already taken",c,true)
+		respond(http.StatusBadRequest,"Username already taken",c,true)
 	}
 }
 
