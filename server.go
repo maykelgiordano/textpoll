@@ -36,7 +36,7 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 }
 
 func InitDB() *mgo.Session {
-	fmt.Prntln("DB URL ---> ", config.GetString("DB_URL"))
+	fmt.Println("DB URL ---> ", config.GetString("DB_URL"))
 	sess, err := mgo.Dial(config.GetString("DB_URL"))
 	if err != nil {
 		panic(fmt.Sprintf("Error connecting to the database:  %s", err))
