@@ -1,1 +1,1 @@
-web: textpoll-api
+web: api
