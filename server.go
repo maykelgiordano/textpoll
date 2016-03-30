@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/mgo.v2"
 	h "txtpoll/sm/api/handlers"
+	"txtpoll/sm/api/config"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,6 +25,7 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 	userHandler := h.NewUserHandler(db)
 	public.GET("/users", userHandler.Index)
 	public.POST("/users", userHandler.Create)
+	public.POST("/auth", userHandler.Auth)
 
 	var port = os.Getenv("PORT")
 	if port == "" {
@@ -34,8 +36,7 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 }
 
 func InitDB() *mgo.Session {
-	sess, err := mgo.Dial("mongodb://localhost/textpolldb")
-	//sess, err := mgo.Dial("mongodb://npc:Passw0rd@ds021689.mlab.com:21689/textpoll")
+	sess, err := mgo.Dial(config.GetString("DB_URL"))
 	if err != nil {
 		panic(fmt.Sprintf("Error connecting to the database:  %s", err))
 	}

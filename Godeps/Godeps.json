@@ -35,10 +35,6 @@
 			"Rev": "56b76bdf51f7708750eac80fa38b952bb9f32639"
 		},
 		{
-			"ImportPath": "github.com/satori/go.uuid",
-			"Rev": "e673fdd4dea8a7334adbbe7f57b7e4b00bdc5502"
-		},
-		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "5d0a0f8cd486626821d2ba44d471ab1c9271d38f"
 		},

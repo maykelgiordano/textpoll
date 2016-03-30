@@ -82,6 +82,37 @@ func (handler UserHandler) Create(c *gin.Context) {
 	}
 }
 
+// Authenticate user
+func (handler UserHandler) Auth(c *gin.Context) {
+	auth := m.Auth{}
+	c.Bind(&auth)
+
+	collection := handler.sess.DB("textpolldb").C("users") 
+	result := m.User{}
+	error := collection.Find(bson.M{"username": auth.Username}).One(&result)
+	if fmt.Sprintf("%s", error) == "not found" {
+		respond(http.StatusBadRequest,"Account not found",c,true)
+	} else {
+		hasher := md5.New()
+    	hasher.Write([]byte(auth.Password))
+		if result.Password == hex.EncodeToString(hasher.Sum(nil)) {
+		    // Create the token
+		    token := jwt.New(jwt.SigningMethodHS256)
+		    token.Claims["id"] = result.Username
+		    token.Claims["iat"] = time.Now().Unix()
+		    token.Claims["exp"] = time.Now().Add(time.Second * 3600 * 24).Unix()
+		    tokenString, err := token.SignedString([]byte("secret"))
+		    if err == nil {
+				respond(http.StatusCreated,tokenString,c,false)
+	    	} else {
+				respond(http.StatusBadRequest,"Failed to create token",c,true)
+			}
+		} else {
+			respond(http.StatusBadRequest,"Invalid password",c,true)
+		}
+	}
+}
+
 
 
 
