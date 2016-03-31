@@ -55,30 +55,34 @@ func (handler UserHandler) Create(c *gin.Context) {
 	c.Bind(&user)
 	collection := handler.sess.DB("textpolldb").C("users") 
 	result := m.User{}
-	err := collection.Find(bson.M{"username": user.Username}).One(&result)
+	err := collection.Find(bson.M{"email": user.Email}).One(&result)
 	//check if email is not existing
 	if fmt.Sprintf("%s", err) == "not found" {
 		// generate hashed password
 		user.CreatedAt = time.Now().UTC()
 		user.UpdatedAt = time.Now().UTC()
 		user.Status = "active"
+		user.IsDefaultPassword = true
 		hasher := md5.New()
     	hasher.Write([]byte(user.Password))
 		user.Password = hex.EncodeToString(hasher.Sum(nil))
 		collection.Insert(&user)
 	    // Create the token
 	    token := jwt.New(jwt.SigningMethodHS256)
-	    token.Claims["id"] = user.Username
+	    token.Claims["id"] = user.Email
 	    token.Claims["iat"] = time.Now().Unix()
 	    token.Claims["exp"] = time.Now().Add(time.Second * 3600 * 24).Unix()
 	    tokenString, err := token.SignedString([]byte("secret"))
 	    if err == nil {
-			respond(http.StatusCreated,tokenString,c,false)
+	    	response := &m.CurrentUser{FirstName: user.FirstName, LastName: user.LastName,
+		    		ContactNo: user.ContactNo, Email: user.Email, UserRole: user.UserRole, 
+		    		IsDefaultPassword: user.IsDefaultPassword, Token: tokenString}
+	    	c.JSON(http.StatusCreated,response)
     	} else {
 			respond(http.StatusBadRequest,"Failed to create account",c,true)
     	}
 	} else {
-		respond(http.StatusBadRequest,"Username already taken",c,true)
+		respond(http.StatusBadRequest,"Email was already taken",c,true)
 	}
 }
 
@@ -89,7 +93,8 @@ func (handler UserHandler) Auth(c *gin.Context) {
 
 	collection := handler.sess.DB("textpolldb").C("users") 
 	result := m.User{}
-	error := collection.Find(bson.M{"username": auth.Username}).One(&result)
+	error := collection.Find(bson.M{"$and": []bson.M{bson.M{"email": auth.Email}, 
+							bson.M{"status": "active"}}}).One(&result)
 	if fmt.Sprintf("%s", error) == "not found" {
 		respond(http.StatusBadRequest,"Account not found",c,true)
 	} else {
@@ -98,12 +103,15 @@ func (handler UserHandler) Auth(c *gin.Context) {
 		if result.Password == hex.EncodeToString(hasher.Sum(nil)) {
 		    // Create the token
 		    token := jwt.New(jwt.SigningMethodHS256)
-		    token.Claims["id"] = result.Username
+		    token.Claims["id"] = result.Email
 		    token.Claims["iat"] = time.Now().Unix()
 		    token.Claims["exp"] = time.Now().Add(time.Second * 3600 * 24).Unix()
 		    tokenString, err := token.SignedString([]byte("secret"))
 		    if err == nil {
-				respond(http.StatusCreated,tokenString,c,false)
+		    	response := &m.CurrentUser{FirstName: result.FirstName, LastName: result.LastName,
+		    		ContactNo: result.ContactNo, Email: result.Email, UserRole: result.UserRole, 
+		    		IsDefaultPassword: result.IsDefaultPassword, Token: tokenString}
+		    	c.JSON(http.StatusOK,response)
 	    	} else {
 				respond(http.StatusBadRequest,"Failed to create token",c,true)
 			}
