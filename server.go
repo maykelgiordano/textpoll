@@ -42,8 +42,8 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 }
 
 func InitDB() *mgo.Session {
-	fmt.Println("DB URL ---> ", config.GetString("DB_URL"))
-	sess, err := mgo.Dial(config.GetString("DB_URL"))
+	//sess, err := mgo.Dial(config.GetString("DB_URL"))
+	sess, err := mgo.Dial("mongodb://rsbulanon:Passw0rd@ds011860.mlab.com:11860/textpolldb")
 	if err != nil {
 		panic(fmt.Sprintf("Error connecting to the database:  %s", err))
 	}
