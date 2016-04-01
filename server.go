@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/mgo.v2"
 	h "txtpoll/sm/api/handlers"
-	"txtpoll/sm/api/config"
+	//"txtpoll/sm/api/config"
 	"github.com/gin-gonic/gin"
 )
 
