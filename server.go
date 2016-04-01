@@ -27,6 +27,12 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 	public.POST("/users", userHandler.Create)
 	public.POST("/auth", userHandler.Auth)
 
+	//manage barangays
+	brgyHandler := h.NewBarangayHandler(db)
+	public.GET("/barangays", brgyHandler.Index)
+	public.POST("/barangays", brgyHandler.Create)
+	public.PUT("/barangays/:id", brgyHandler.Update)
+
 	var port = os.Getenv("PORT")
 	if port == "" {
 		port = "9000"
