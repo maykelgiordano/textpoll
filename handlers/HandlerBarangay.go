@@ -42,7 +42,7 @@ func (handler BarangayHandler) Index(c *gin.Context) {
 	fmt.Printf("offset ---> %d max ---> %d\n", start, max)
 	brgys := []m.Barangay{}
 	collection := handler.sess.DB("textpolldb").C("barangay") 
-	collection.Find(nil).All(&brgys)
+	collection.Find(nil).Sort("-createdat").All(&brgys)
 	c.JSON(http.StatusOK, brgys)
 }
 
@@ -85,9 +85,17 @@ func (handler BarangayHandler) Update(c *gin.Context) {
 							bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherBrgy)
 		fmt.Println("ERRR ---> ", err)
 		if fmt.Sprintf("%s", err) == "not found" {
-			collection.Update(bson.M{"_id": bson.ObjectIdHex(id)}, bson.M{"$set": bson.M{"barangayname": brgy.BarangayName,
-									"population" : brgy.Population, "updatedat" : time.Now().UTC()}})
-			respond(http.StatusOK,"Barangay record successfully updated!",c,true)
+			//collection.Update(bson.M{"_id": bson.ObjectIdHex(id)}, bson.M{"$set": bson.M{"barangayname": brgy.BarangayName,
+			//						"population" : brgy.Population, "updatedat" : time.Now().UTC()}})
+
+			change := mgo.Change {
+				Update: bson.M{"$set": bson.M{"barangayname": brgy.BarangayName,
+								"population" : brgy.Population, "updatedat" : time.Now().UTC()}},
+				ReturnNew: true,
+			}
+			updatedBrgy := m.Barangay{}
+			collection.FindId(bson.ObjectIdHex(id)).Apply(change, &updatedBrgy) // Apply
+			c.JSON(http.StatusOK,updatedBrgy)
 		} else {
 			respond(http.StatusBadRequest,"Barangay name was already taken",c,true)
 		}
