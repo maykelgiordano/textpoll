@@ -33,11 +33,17 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 	public.POST("/barangays", brgyHandler.Create)
 	public.PUT("/barangays/:id", brgyHandler.Update)
 
-	//manager polling place
+	//manage polling place
 	pollingPlaceHandler := h.NewPollingPlaceHandler(db)
 	public.GET("/pollingplace", pollingPlaceHandler.Index)
 	public.POST("/pollingplace", pollingPlaceHandler.Create)
 	public.PUT("/pollingplace/:id", pollingPlaceHandler.Update)
+
+	//manage precincts
+	precinctsHandler := h.NewPrecinctHandler(db)
+	public.GET("/precincts", precinctsHandler.Index)
+	public.POST("/precincts", precinctsHandler.Create)
+	public.PUT("/precincts/:id", precinctsHandler.Update)
 
 	var port = os.Getenv("PORT")
 	if port == "" {
