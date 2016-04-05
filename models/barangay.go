@@ -7,9 +7,8 @@ import (
 
 type Barangay struct {
 	Id bson.ObjectId `json:"id" bson:"_id,omitempty"`
-	BarangayName  string `form:"brgy_name" binding:"required"`
-	Population int `form:"population_count" binding:"required"`
-	Status string `form:"status" binding:"required"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	BarangayName  string `json:"barangay_name" form:"brgy_name" binding:"required"`
+	Status string `json:"status" form:"status" binding:"required"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_ad"`
 }

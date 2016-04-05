@@ -50,19 +50,25 @@ func (handler PollingPlaceHandler) Index(c *gin.Context) {
 func (handler PollingPlaceHandler) Create(c *gin.Context) {
 	pollingPlace := m.PollingPlace{}
 	c.Bind(&pollingPlace)
-	collection := handler.sess.DB("textpolldb").C("pollingplace") 
-	result := m.PollingPlace{}
-	err := collection.Find(bson.M{"place": pollingPlace.Place}).One(&result)
-	//check if polling place is not existing
-	if fmt.Sprintf("%s", err) == "not found" {
-		pollingPlace.Id = bson.NewObjectId()
-		pollingPlace.CreatedAt = time.Now().UTC()
-		pollingPlace.UpdatedAt = time.Now().UTC()
-		pollingPlace.Status = "active"
-		collection.Insert(&pollingPlace)
-		c.JSON(http.StatusCreated,pollingPlace)
+	if pollingPlace.BarangayId == "" {
+		respond(http.StatusBadRequest,"Please specify which barangay the polling place belongs",c,true)
+	} else if pollingPlace.Place == "" {
+		respond(http.StatusBadRequest,"Please specify the polling place name",c,true)	
 	} else {
-		respond(http.StatusBadRequest,"Polling place name was already taken",c,true)
+		collection := handler.sess.DB("textpolldb").C("pollingplace") 
+		result := m.PollingPlace{}
+		err := collection.Find(bson.M{"place": pollingPlace.Place}).One(&result)
+		//check if polling place is not existing
+		if fmt.Sprintf("%s", err) == "not found" {
+			pollingPlace.Id = bson.NewObjectId()
+			pollingPlace.CreatedAt = time.Now().UTC()
+			pollingPlace.UpdatedAt = time.Now().UTC()
+			pollingPlace.Status = "active"
+			collection.Insert(&pollingPlace)
+			c.JSON(http.StatusCreated,pollingPlace)
+		} else {
+			respond(http.StatusBadRequest,"Polling place name was already taken",c,true)
+		}
 	}
 }
 
@@ -71,31 +77,64 @@ func (handler PollingPlaceHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	place := m.PollingPlace{}
 	c.Bind(&place)
-	collection := handler.sess.DB("textpolldb").C("pollingplace") 
-	result := m.PollingPlace{}
-	err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
-	//check if polling place record exists
-	if fmt.Sprintf("%s", err) == "not found" {
-		respond(http.StatusBadRequest,"Polling place record not found",c,true)
+	if place.BarangayId == "" {
+		respond(http.StatusBadRequest,"Please specify which barangay the polling place belongs",c,true)
+	} else if place.Place == "" {
+		respond(http.StatusBadRequest,"Please specify the polling place name",c,true)	
 	} else {
-		//check if polling place name exists
-		otherPlace := m.PollingPlace{}
-		err := collection.Find(bson.M{"$and": []bson.M{bson.M{"place": place.Place}, 
-							bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherPlace)
-		fmt.Println("ERRR ---> ", err)
+	 	collection := handler.sess.DB("textpolldb").C("pollingplace") 
+		result := m.PollingPlace{}
+		err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
+		//check if polling place record exists
 		if fmt.Sprintf("%s", err) == "not found" {
-			change := mgo.Change {
-				Update: bson.M{"$set": bson.M{"place": place.Place,
-								"status" : place.Status, "updatedat" : time.Now().UTC()}},
-				ReturnNew: true,
-			}
-			updatePlace := m.PollingPlace{}
-			collection.FindId(bson.ObjectIdHex(id)).Apply(change, &updatePlace) // Apply
-			c.JSON(http.StatusOK,updatePlace)
+			respond(http.StatusBadRequest,"Polling place record not found",c,true)
 		} else {
-			respond(http.StatusBadRequest,"Polling place name was already taken",c,true)
+			//check if polling place name exists
+			otherPlace := m.PollingPlace{}
+			err := collection.Find(bson.M{"$and": []bson.M{bson.M{"place": place.Place}, 
+								bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherPlace)
+			fmt.Println("ERRR ---> ", err)
+			if fmt.Sprintf("%s", err) == "not found" {
+				change := mgo.Change {
+					Update: bson.M{"$set": bson.M{"place": place.Place,
+									"barangayid": place.BarangayId,
+									"status" : place.Status, "updatedat" : time.Now().UTC()}},
+					ReturnNew: true,
+				}
+				updatePlace := m.PollingPlace{}
+				collection.FindId(bson.ObjectIdHex(id)).Apply(change, &updatePlace) // Apply
+				c.JSON(http.StatusOK,updatePlace)
+			} else {
+				respond(http.StatusBadRequest,"Polling place name was already taken",c,true)
+			}
 		}
 	}
+}
+
+//fetch list of precincts under a selected barangay
+func (handler PollingPlaceHandler) Show(c *gin.Context) {
+	id := c.Param("id")
+	start := -1
+	max := 10
+
+	//check if start exists in url parameters
+	if c.Query("start") != ""  {
+		i,_ := strconv.Atoi(c.Query("start"))
+		start = i;
+	} else {
+		fmt.Println("cant read start query param")
+	}
+
+	if c.Query("max") != ""  {
+		i,_ := strconv.Atoi(c.Query("max"))
+		max = i;
+	} 
+
+	fmt.Printf("offset ---> %d max ---> %d\n", start, max)
+	precincts := []m.Precinct{}
+	collection := handler.sess.DB("textpolldb").C("precinct") 
+	collection.Find(bson.M{"$and" : []bson.M{bson.M{"status": "active"},bson.M{"pollingplaceid" : id}}}).Sort("-createdat").All(&precincts)
+	c.JSON(http.StatusOK, precincts)
 }
 
 

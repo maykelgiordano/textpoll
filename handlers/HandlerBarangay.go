@@ -90,7 +90,7 @@ func (handler BarangayHandler) Update(c *gin.Context) {
 
 			change := mgo.Change {
 				Update: bson.M{"$set": bson.M{"barangayname": brgy.BarangayName,
-								"population" : brgy.Population, "updatedat" : time.Now().UTC()}},
+								"updatedat" : time.Now().UTC()}},
 				ReturnNew: true,
 			}
 			updatedBrgy := m.Barangay{}
@@ -100,6 +100,15 @@ func (handler BarangayHandler) Update(c *gin.Context) {
 			respond(http.StatusBadRequest,"Barangay name was already taken",c,true)
 		}
 	}
+}
+
+//show polling places in a barangay
+func (handler BarangayHandler) Show(c *gin.Context) {
+	id := c.Param("id")
+	places := []m.PollingPlace{}
+	collection := handler.sess.DB("textpolldb").C("pollingplace") 
+	collection.Find(bson.M{"$and" : []bson.M{bson.M{"status": "active"},bson.M{"barangayid" : id}}}).Sort("-createdat").All(&places)
+	c.JSON(http.StatusOK, places)
 }
 
 

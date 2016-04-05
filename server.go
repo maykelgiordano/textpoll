@@ -31,12 +31,14 @@ func LoadAPIRoutes(r *gin.Engine, db *mgo.Session) {
 	brgyHandler := h.NewBarangayHandler(db)
 	public.GET("/barangays", brgyHandler.Index)
 	public.POST("/barangays", brgyHandler.Create)
+	public.GET("/barangays/:id", brgyHandler.Show)
 	public.PUT("/barangays/:id", brgyHandler.Update)
 
 	//manage polling place
 	pollingPlaceHandler := h.NewPollingPlaceHandler(db)
 	public.GET("/pollingplace", pollingPlaceHandler.Index)
 	public.POST("/pollingplace", pollingPlaceHandler.Create)
+	public.GET("/pollingplace/:id", pollingPlaceHandler.Show)
 	public.PUT("/pollingplace/:id", pollingPlaceHandler.Update)
 
 	//manage precincts

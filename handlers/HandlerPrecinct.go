@@ -46,54 +46,73 @@ func (handler PrecinctHandler) Index(c *gin.Context) {
 	c.JSON(http.StatusOK, precincts)
 }
 
-// Create new polling place
+// Create new precinct
 func (handler PrecinctHandler) Create(c *gin.Context) {
 	precinct := m.Precinct{}
 	c.Bind(&precinct)
-	collection := handler.sess.DB("textpolldb").C("precinct") 
-	result := m.Precinct{}
-	err := collection.Find(bson.M{"precinctno": precinct.PrecinctNo}).One(&result)
-	
-	if fmt.Sprintf("%s", err) == "not found" {
-		precinct.Id = bson.NewObjectId()
-		precinct.CreatedAt = time.Now().UTC()
-		precinct.UpdatedAt = time.Now().UTC()
-		precinct.Status = "active"
-		collection.Insert(&precinct)
-		c.JSON(http.StatusCreated,precinct)
+
+	if precinct.PrecinctNo == "" {
+		respond(http.StatusBadRequest,"Please specify the precinct no",c,true)
+	} else if precinct.RegisteredVoters < 1 || strconv.Itoa(precinct.RegisteredVoters) == "" {
+		respond(http.StatusBadRequest,"Please specify the no. of registered voters",c,true)
+	} else if precinct.PollingPlaceId == "" {
+		respond(http.StatusBadRequest,"Please specify the polling place id of the precinct",c,true)
 	} else {
-		respond(http.StatusBadRequest,"Precinct id already existing",c,true)
+		collection := handler.sess.DB("textpolldb").C("precinct") 
+		result := m.Precinct{}
+		err := collection.Find(bson.M{"precinctno": precinct.PrecinctNo}).One(&result)
+		
+		if fmt.Sprintf("%s", err) == "not found" {
+			precinct.Id = bson.NewObjectId()
+			precinct.CreatedAt = time.Now().UTC()
+			precinct.UpdatedAt = time.Now().UTC()
+			precinct.Status = "active"
+			collection.Insert(&precinct)
+			c.JSON(http.StatusCreated,precinct)
+		} else {
+			respond(http.StatusBadRequest,"Precinct id already existing",c,true)
+		}
 	}
 }
 
-// Update polling place
+// Update a precinct
 func (handler PrecinctHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	place := m.PollingPlace{}
-	c.Bind(&place)
-	collection := handler.sess.DB("textpolldb").C("precinct") 
-	result := m.PollingPlace{}
-	err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
-	//check if polling place record exists
-	if fmt.Sprintf("%s", err) == "not found" {
-		respond(http.StatusBadRequest,"Polling place record not found",c,true)
+	precinct := m.Precinct{}
+	c.Bind(&precinct)
+
+	if precinct.PrecinctNo == "" {
+		respond(http.StatusBadRequest,"Please specify the precinct no",c,true)
+	} else if precinct.RegisteredVoters < 1 || strconv.Itoa(precinct.RegisteredVoters) == "" {
+		respond(http.StatusBadRequest,"Please specify the no. of registered voters",c,true)
+	} else if precinct.PollingPlaceId == "" {
+		respond(http.StatusBadRequest,"Please specify the polling place id of the precinct",c,true)
 	} else {
-		//check if polling place name exists
-		otherPlace := m.PollingPlace{}
-		err := collection.Find(bson.M{"$and": []bson.M{bson.M{"place": place.Place}, 
-							bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherPlace)
-		fmt.Println("ERRR ---> ", err)
+		collection := handler.sess.DB("textpolldb").C("precinct") 
+		result := m.Precinct{}
+		err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
+
 		if fmt.Sprintf("%s", err) == "not found" {
-			change := mgo.Change {
-				Update: bson.M{"$set": bson.M{"place": place.Place,
-								"status" : place.Status, "updatedat" : time.Now().UTC()}},
-				ReturnNew: true,
-			}
-			updatePlace := m.PollingPlace{}
-			collection.FindId(bson.ObjectIdHex(id)).Apply(change, &updatePlace) // Apply
-			c.JSON(http.StatusOK,updatePlace)
+			respond(http.StatusBadRequest,"Precinct not found",c,true)
 		} else {
-			respond(http.StatusBadRequest,"Polling place name was already taken",c,true)
+			otherPrecinct := m.Precinct{}
+			err := collection.Find(bson.M{"$and": []bson.M{bson.M{"precinctno": precinct.PrecinctNo}, 
+								bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherPrecinct)
+			fmt.Println("ERRR ---> ", err)
+			if fmt.Sprintf("%s", err) == "not found" {
+				change := mgo.Change {
+					Update: bson.M{"$set": bson.M{"precinctno": precinct.PrecinctNo,
+									"pollingplaceid" : precinct.PollingPlaceId,
+									"registeredvoters" : precinct.RegisteredVoters,
+									"status" : precinct.Status, "updatedat" : time.Now().UTC()}},
+					ReturnNew: true,
+				}
+				updatePrecinct := m.Precinct{}
+				collection.FindId(bson.ObjectIdHex(id)).Apply(change, &updatePrecinct) // Apply
+				c.JSON(http.StatusOK,updatePrecinct)
+			} else {
+				respond(http.StatusBadRequest,"Precint id already used",c,true)
+			}
 		}
 	}
 }

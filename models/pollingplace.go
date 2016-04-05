@@ -7,8 +7,9 @@ import (
 
 type PollingPlace struct {
 	Id bson.ObjectId `json:"id" bson:"_id,omitempty"`
-	Place  string `form:"place" binding:"required"`
-	Status string `form:"status" binding:"required"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Place  string `json:"place" form:"place" binding:"required"`
+	Status string `json:"status" form:"status" binding:"required"`
+	BarangayId string `form:"barangay_id" binding:"required"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
