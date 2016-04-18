@@ -81,7 +81,7 @@ func (handler BarangayHandler) Update(c *gin.Context) {
 	} else {
 		//check if barangay name exists
 		otherBrgy := m.Barangay{}
-		err := collection.Find(bson.M{"$and": []bson.M{bson.M{"barangayname": brgy.BarangayName}, 
+		err := collection.Find(bson.M{"$and": []bson.M{bson.M{"barangayname": brgy.BarangayName},
 							bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherBrgy)
 		fmt.Println("ERRR ---> ", err)
 		if fmt.Sprintf("%s", err) == "not found" {

@@ -10,5 +10,5 @@ type Barangay struct {
 	BarangayName  string `json:"barangay_name" form:"brgy_name" binding:"required"`
 	Status string `json:"status" form:"status" binding:"required"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_ad"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

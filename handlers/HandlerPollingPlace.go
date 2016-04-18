@@ -57,7 +57,8 @@ func (handler PollingPlaceHandler) Create(c *gin.Context) {
 	} else {
 		collection := handler.sess.DB("textpolldb").C("pollingplace") 
 		result := m.PollingPlace{}
-		err := collection.Find(bson.M{"place": pollingPlace.Place}).One(&result)
+		err := collection.Find(bson.M{"$and": []bson.M{bson.M{"place": pollingPlace.Place},
+								bson.M{"barangayid" : pollingPlace.BarangayId}}}).One(&result)
 		//check if polling place is not existing
 		if fmt.Sprintf("%s", err) == "not found" {
 			pollingPlace.Id = bson.NewObjectId()
@@ -84,7 +85,7 @@ func (handler PollingPlaceHandler) Update(c *gin.Context) {
 	} else {
 	 	collection := handler.sess.DB("textpolldb").C("pollingplace") 
 		result := m.PollingPlace{}
-		err := collection.Find(bson.M{"_id": bson.ObjectIdHex(id)}).One(&result)
+		err := collection.Find(bson.M{"_id" : bson.ObjectIdHex(id)}).One(&result)
 		//check if polling place record exists
 		if fmt.Sprintf("%s", err) == "not found" {
 			respond(http.StatusBadRequest,"Polling place record not found",c,true)
@@ -92,6 +93,7 @@ func (handler PollingPlaceHandler) Update(c *gin.Context) {
 			//check if polling place name exists
 			otherPlace := m.PollingPlace{}
 			err := collection.Find(bson.M{"$and": []bson.M{bson.M{"place": place.Place}, 
+								bson.M{"barangayid" : place.BarangayId},
 								bson.M{"_id" : bson.M{"$ne" : bson.ObjectIdHex(id)}}}}).One(&otherPlace)
 			fmt.Println("ERRR ---> ", err)
 			if fmt.Sprintf("%s", err) == "not found" {
